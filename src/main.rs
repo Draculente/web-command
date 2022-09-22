@@ -15,14 +15,21 @@ fn index(search_string: &str, config: &State<Config>) -> Redirect {
         .inner()
         .0
         .iter()
-        .find(|e| search_string.contains(e.key.as_str()))
+        .find(|e| {
+            search_string.ends_with(e.key.as_str())
+                || search_string.contains(&format!("{} ", e.key))
+        })
         .or_else(|| config.0.get(0))
         .map(|e| {
             e.url.clone().replace(
                 "{{s}}",
-                encode(&search_string.replace(&e.key, ""))
-                    .into_owned()
-                    .as_str(),
+                encode(
+                    &search_string
+                        .replace(&format!("{} ", e.key), "")
+                        .replace(&e.key, ""),
+                )
+                .into_owned()
+                .as_str(),
             )
         })
         .unwrap();
