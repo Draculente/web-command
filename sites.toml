@@ -1,0 +1,4 @@
+[[config]]
+name = "duden"
+key = ":d"
+url = "https://duden.de/search/{{s}}"
