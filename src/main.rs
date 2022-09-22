@@ -38,7 +38,9 @@ fn not_found(_: Status, _: &Request) -> &'static str {
 #[launch]
 fn rocket() -> _ {
     rocket::build()
-        .manage(Config::read_from_config("./sites.json"))
+        .manage(Config::read_from_config(
+            "/home/draculente/.config/web-command/sites.json",
+        ))
         .mount("/", routes![index])
         .register("/", catchers![not_found])
 }
