@@ -5,32 +5,50 @@ mod config;
 
 use config::Config;
 use rocket::http::Status;
+use rocket::request::{FromRequest, Outcome};
 use rocket::Request;
 use rocket::{http::uri::Absolute, response::Redirect, State};
-use urlencoding::encode;
+use urlencoding::{decode, encode};
 
-#[get("/<search_string>")]
-fn index(search_string: &str, config: &State<Config>) -> Redirect {
+struct SearchString(String);
+
+#[rocket::async_trait]
+impl<'r, 'a> FromRequest<'r> for SearchString {
+    type Error = std::fmt::Error;
+
+    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        match req.uri().path().raw_segments().nth(0) {
+            Some(param) => Outcome::Success(SearchString(
+                decode(&param.as_str().replace("+", "%20"))
+                    .unwrap()
+                    .into_owned(),
+            )),
+            None => Outcome::Success(SearchString("".to_string())),
+        }
+    }
+}
+
+impl SearchString {
+    fn matches(&self, key: &str) -> bool {
+        self.0.ends_with(key) || self.0.contains(&format!("{} ", key))
+    }
+
+    fn encode(self, key: &str) -> String {
+        encode(&self.0.replace(&format!("{} ", key), "").replace(&key, "")).into_owned()
+    }
+}
+
+#[get("/<_>")]
+fn index(string: SearchString, config: &State<Config>) -> Redirect {
     let url = config
-        .inner()
         .0
         .iter()
-        .find(|e| {
-            search_string.ends_with(e.key.as_str())
-                || search_string.contains(&format!("{} ", e.key))
-        })
+        .find(|e| string.matches(e.key.as_str()))
         .or_else(|| config.0.get(0))
         .map(|e| {
-            e.url.clone().replace(
-                "{{s}}",
-                encode(
-                    &search_string
-                        .replace(&format!("{} ", e.key), "")
-                        .replace(&e.key, ""),
-                )
-                .into_owned()
-                .as_str(),
-            )
+            e.url
+                .clone()
+                .replace("{{s}}", string.encode(e.key.as_str()).as_str())
         })
         .unwrap();
 
