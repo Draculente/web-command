@@ -3,6 +3,8 @@ extern crate rocket;
 
 mod config;
 
+use std::{env, process};
+
 use config::Config;
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome};
@@ -40,11 +42,11 @@ impl SearchString {
 
 #[get("/<_>")]
 fn index(string: SearchString, config: &State<Config>) -> Redirect {
-    let url = config
-        .0
+    let sites = &config.sites;
+    let url = sites
         .iter()
         .find(|e| string.matches(e.key.as_str()))
-        .or_else(|| config.0.get(0))
+        .or_else(|| sites.get(0))
         .map(|e| {
             e.url
                 .clone()
@@ -63,7 +65,9 @@ fn not_found(_: Status, _: &Request) -> &'static str {
 #[launch]
 fn rocket() -> _ {
     rocket::build()
-        .manage(Config::read_from_config("./sites.json"))
+        .manage(Config::read_from_config(
+            &env::args().nth(1).unwrap_or("./sites.toml".to_string()),
+        ))
         .mount("/", routes![index])
         .register("/", catchers![not_found])
 }
