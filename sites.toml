@@ -100,3 +100,12 @@ url = "https://unsplash.com/s/photos/{{s}}"
 name = "Google Fonts"
 key = "f"
 url = "https://fonts.google.com/?query={{s}}"
+[[sites]]
+name = "Dribbble"
+key = "drib"
+url = "https://dribbble.com/search/{{s}}"
+[[sites]]
+name = "Behance"
+key = "be"
+url = "https://www.behance.net/search?search={{s}}"
+
