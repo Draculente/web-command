@@ -15,7 +15,7 @@ use urlencoding::decode;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 pub fn run(config: Arc<Config>) -> Result<()> {
-    let listener = TcpListener::bind(format!("127.0.0.1:{}", env::var("WEBCOMMAND_PORT")?))?;
+    let listener = TcpListener::bind(format!("0.0.0.0:{}", env::var("WEBCOMMAND_PORT")?))?;
 
     // accept connections and process them serially
     for stream in listener.incoming() {
