@@ -1,4 +1,102 @@
-[[config]]
+prefix = "."
+
+[[sites]]
+name = "duckduckgo"
+key = "d"
+url = "https://duckduckgo.com/?q={{s}}"
+[[sites]]
 name = "duden"
-key = ":d"
-url = "https://duden.de/search/{{s}}"
+key = "du"
+url = "http://www.duden.de/suchen/dudenonline/{{s}}"
+[[sites]]
+name = "google"
+key = "g"
+url = "https://google.com/search?q={{s}}"
+[[sites]]
+name = "mdn"
+key = "mdn"
+url = "https://developer.mozilla.org/en-US/search?q={{s}}"
+[[sites]]
+name = "crates"
+key = "c"
+url = "https://crates.io/search?q={{s}}"
+[[sites]]
+name = "justwatch"
+key = "j"
+url = "https://www.justwatch.com/de/Suche?q={{s}}"
+[[sites]]
+name = "wikipedia"
+key = "w"
+url = "https://de.wikipedia.org/wiki/Special:Search?search={{s}}"
+[[sites]]
+name = "wikipedia englisch"
+key = "we"
+url = "https://en.wikipedia.org/wiki/Special:Search?search={{s}}"
+[[sites]]
+name = "Github full rep name"
+key = "git"
+url = "https://github.com/Draculente/{{s}}"
+[[sites]]
+name = "Github own rep search"
+key = "gh"
+url = "https://github.com/?q={{s}}"
+[[sites]]
+name = "Youtube"
+key = "y"
+url = "https://www.youtube.com/results?search_query={{s}}"
+[[sites]]
+name = "Amazon"
+key = "a"
+url = "https://www.amazon.de/s/?url=search-alias%3Daps&field-keywords={{s}}"
+[[sites]]
+name = "ARD Mediathek"
+key = "ard"
+url = "https://www.ardmediathek.de/suche/{{s}}"
+[[sites]]
+name = "ZDF Mediathek"
+key = "zdf"
+url = "https://www.zdf.de/suche?q={{s}}&sender=Gesamtes+Angebot"
+[[sites]]
+name = "Google Docs"
+key = "docs"
+url = "https://docs.google.com/document/u/0/?q={{s}}"
+[[sites]]
+name = "NPMjs"
+key = "npm"
+url = "https://www.npmjs.com/search?q={{s}}"
+[[sites]]
+name = "Ebay de"
+key = "ebay"
+url = "https://www.ebay.de/sch/i.html?_nkw={{s}}"
+[[sites]]
+name = "Reddit"
+key = "reddit"
+url = "https://www.reddit.com/search/?q={{s}}"
+[[sites]]
+name = "Google Images"
+key = "gi"
+url = "https://www.google.com/search?q={{s}}&newwindow=1&tbs=imgo:1&tbm=isch"
+[[sites]]
+name = "Google Maps"
+key = "m"
+url = "https://google.com/maps?q={{s}}"
+[[sites]]
+name = "Rust Docs"
+key = "r"
+url = "https://doc.rust-lang.org/std/?search={{s}}"
+[[sites]]
+name = "Deepl von Englisch nach Deutsch"
+key = "de"
+url = "https://www.deepl.com/translator#en/de/{{s}}"
+[[sites]]
+name = "Deepl von Deutsch nach Englisch"
+key = "leo"
+url = "https://dict.leo.org/englisch-deutsch/{{s}}"
+[[sites]]
+name = "Unsplash"
+key = "un"
+url = "https://unsplash.com/s/photos/{{s}}"
+[[sites]]
+name = "Google Fonts"
+key = "f"
+url = "https://fonts.google.com/?query={{s}}"
