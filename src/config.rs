@@ -25,6 +25,7 @@ struct RawConfig {
 
 #[derive(Debug)]
 pub struct Config {
+    pub path: String,
     sites: Vec<SearchConfig>,
 }
 
@@ -37,6 +38,7 @@ impl Config {
             .expect(format!("error in the config file at {}", path).as_str());
 
         Config {
+            path: path.to_string(),
             sites: raw
                 .sites
                 .into_iter()
@@ -62,10 +64,12 @@ impl Config {
                 let mut redirect = e.url.clone();
                 redirect.insert_str(
                     e.index_of_replace,
+                    //TODO: only replace the one that was chosen
                     encode(
                         &search_string
                             .replace(&e.key_with_space, "")
-                            .replace(&e.key, ""),
+                            .replace(&e.key, "")
+                            .trim(),
                     )
                     .into_owned()
                     .as_str(),
