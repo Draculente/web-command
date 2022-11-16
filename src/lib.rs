@@ -83,7 +83,7 @@ fn handle_request(stream: &mut TcpStream, req: &Request, config: &Config) -> Res
         let file = fs::read_to_string(config.path.as_str())?;
         let _ = stream.write_all(
             format!(
-                "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}\n",
+                "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\n\r\n{}\n",
                 file.as_bytes().len(),
                 file
             )
