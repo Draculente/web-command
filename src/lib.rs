@@ -55,15 +55,12 @@ fn handle_client(stream: &mut TcpStream, config: &Config) -> Result<()> {
         fill_meter = fill_meter + stream.read(&mut buf[fill_meter..])?;
 
         {
-            let mut headers = Vec::<thhp::HeaderField>::with_capacity(16);
+            let mut headers = Vec::<thhp::HeaderField>::with_capacity(20);
 
             match Request::parse(&buf[0..fill_meter], &mut headers) {
                 Ok(Complete((ref req, _))) => return handle_request(stream, req, config),
                 Ok(thhp::Incomplete) => (),
-                Err(err) => {
-                    dbg!(err);
-                    ()
-                }
+                Err(err) => return Err(Box::new(err)),
             }
         }
 
@@ -86,7 +83,7 @@ fn handle_request(stream: &mut TcpStream, req: &Request, config: &Config) -> Res
         let file = fs::read_to_string(config.path.as_str())?;
         let _ = stream.write_all(
             format!(
-                "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: {}\r\n\r\n{}\n",
+                "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}\n",
                 file.as_bytes().len(),
                 file
             )
