@@ -1,5 +1,5 @@
 use std::{
-    env,
+    env, fs,
     io::{Read, Write},
     net::{TcpListener, TcpStream},
     sync::Arc,
@@ -55,12 +55,12 @@ fn handle_client(stream: &mut TcpStream, config: &Config) -> Result<()> {
         fill_meter = fill_meter + stream.read(&mut buf[fill_meter..])?;
 
         {
-            let mut headers = Vec::<thhp::HeaderField>::with_capacity(16);
+            let mut headers = Vec::<thhp::HeaderField>::with_capacity(20);
 
             match Request::parse(&buf[0..fill_meter], &mut headers) {
                 Ok(Complete((ref req, _))) => return handle_request(stream, req, config),
                 Ok(thhp::Incomplete) => (),
-                Err(_) => todo!(),
+                Err(err) => return Err(Box::new(err)),
             }
         }
 
@@ -78,6 +78,19 @@ fn handle_request(stream: &mut TcpStream, req: &Request, config: &Config) -> Res
     if req.method != "GET" {
         Err("method not supported")?
     };
+
+    if req.target.starts_with("/u/") {
+        let file = fs::read_to_string(config.path.as_str())?;
+        let _ = stream.write_all(
+            format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\n\r\n{}\n",
+                file.as_bytes().len(),
+                file
+            )
+            .as_bytes(),
+        );
+        return Ok(());
+    }
 
     // TODO: Better error handling when no prefix is present
     let redirect = decode(req.target.strip_prefix("/").unwrap_or_default())?;
