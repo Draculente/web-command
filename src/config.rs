@@ -58,21 +58,23 @@ impl Config {
     pub fn find_redirect(&self, search_string: &str) -> Option<String> {
         self.sites
             .iter()
-            .find(|e| search_string.ends_with(&e.key) || search_string.contains(&e.key_with_space))
-            .or_else(|| self.sites.get(0))
+            .map(|e| (e, true))
+            .find(|e| {
+                search_string.ends_with(&e.0.key) || search_string.contains(&e.0.key_with_space)
+            })
+            .or_else(|| self.sites.get(0).map(|e| (e, false)))
             .map(|e| {
-                let mut redirect = e.url.clone();
+                let mut redirect = e.0.url.clone();
+                let search_string = search_string.replace(&e.0.key_with_space, "");
+                let search_string = if e.1 {
+                    search_string.replace(&e.0.key, "")
+                } else {
+                    search_string
+                };
                 redirect.insert_str(
-                    e.index_of_replace,
+                    e.0.index_of_replace,
                     //TODO: only replace the one that was chosen
-                    encode(
-                        &search_string
-                            .replace(&e.key_with_space, "")
-                            .replace(&e.key, "")
-                            .trim(),
-                    )
-                    .into_owned()
-                    .as_str(),
+                    encode(&search_string).into_owned().as_str(),
                 );
                 redirect
             })

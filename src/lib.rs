@@ -1,15 +1,14 @@
-use std::{
-    env, fs,
-    io::{Read, Write},
-    net::{TcpListener, TcpStream},
-    sync::Arc,
-    thread,
-    time::Duration,
-};
+#![feature(try_trait_v2)]
+use std::{env, fs, net::TcpListener, sync::Arc};
 
 pub mod config;
+mod simple_server;
 use config::Config;
-use thhp::{Request, Status::Complete};
+use http_bytes::{
+    http::{Method, Response, StatusCode},
+    Request,
+};
+use simple_server::{Result as SResult, SResponse, SimpleServer, SimpleServerError};
 use urlencoding::decode;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -17,103 +16,41 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 pub fn run(config: Arc<Config>) -> Result<()> {
     let listener = TcpListener::bind(format!("0.0.0.0:{}", env::var("WEBCOMMAND_PORT")?))?;
 
-    // accept connections and process them serially
-    for stream in listener.incoming() {
-        let c = Arc::clone(&config);
-        let mut s = stream?;
-        thread::spawn(move || {
-            if let Err(e) = handle_client(&mut s, &c) {
-                println!("Err {}", e);
-                let _ = s.write_all(
-                    b"HTTP/1.1 400 Invalid Request\r\n\
-                                      Content-Type: text/plain\r\n\
-                                      \r\n",
-                );
-                let _ = s.write_all(e.to_string().as_bytes());
-                let _ = s.write_all(b"\n");
-            }
-        });
-    }
+    let mut server = SimpleServer::new(listener, config);
+    server.add_handler(Method::GET, "/u/", send_config_file);
+    server.add_handler(Method::GET, "/", redirect_handler);
+    server.run()?;
+
     Ok(())
 }
 
-//https://github.com/vi/http-bytes/blob/master/examples/http_proxy.rs
+fn send_config_file(_: &Request, config: &Config) -> SResult<SResponse> {
+    let file = fs::read_to_string(config.path.as_str())?;
 
-fn handle_client(stream: &mut TcpStream, config: &Config) -> Result<()> {
-    let mut buf = vec![0u8; 1024 * 2];
-    let mut fill_meter = 0usize;
-
-    if let Err(_) = stream.set_read_timeout(Some(Duration::from_millis(1000))) {
-        //TODO: Errorhandling;
-    }
-
-    if let Err(_) = stream.set_write_timeout(Some(Duration::from_millis(1000))) {
-        //TODO: Errorhandling;
-    }
-
-    loop {
-        fill_meter = fill_meter + stream.read(&mut buf[fill_meter..])?;
-
-        {
-            let mut headers = Vec::<thhp::HeaderField>::with_capacity(20);
-
-            match Request::parse(&buf[0..fill_meter], &mut headers) {
-                Ok(Complete((ref req, _))) => return handle_request(stream, req, config),
-                Ok(thhp::Incomplete) => (),
-                Err(err) => return Err(Box::new(err)),
-            }
-        }
-
-        if fill_meter > 1024 * 100 {
-            Err("request to big")?;
-        }
-
-        buf.resize(fill_meter + 1024, 0u8);
-
-        thread::sleep(Duration::from_millis(1))
-    }
+    Ok(Response::builder()
+        .status(200)
+        .header("Content-Type", "text/plain")
+        .header("Access-Control-Allow-Origin", "*")
+        .header("Content-Length", file.as_bytes().len())
+        .body(file.as_bytes().to_vec()))
 }
 
-fn handle_request(stream: &mut TcpStream, req: &Request, config: &Config) -> Result<()> {
-    if req.method != "GET" {
-        Err("method not supported")?
-    };
-
-    if req.target.starts_with("/u/") {
-        let file = fs::read_to_string(config.path.as_str())?;
-        let _ = stream.write_all(
-            format!(
-                "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: {}\r\n\r\n{}\n",
-                file.as_bytes().len(),
-                file
-            )
-            .as_bytes(),
-        );
-        return Ok(());
-    }
-
-    // TODO: Better error handling when no prefix is present
+fn redirect_handler(req: &Request, config: &Config) -> SResult<SResponse> {
     let raw_redirect = req
-        .target
+        .uri()
+        .to_string()
         .strip_prefix("/")
         .map(|s| s.replace("+", " "))
         .unwrap_or("".to_owned());
-    let redirect = decode(&raw_redirect)?;
 
-    match config.find_redirect(&redirect.to_owned()) {
-        Some(r) => {
-            let _ = stream.write_all(
-                format!(
-                    "HTTP/1.1 301 Moved Permanently\r\n\
-                                      Location: {}\r\n\
-                                      \n",
-                    r
-                )
-                .as_bytes(),
-            );
-        }
-        None => Err("no redirect specified")?,
-    };
-
-    Ok(())
+    match decode(&raw_redirect) {
+        Err(_) => Err(SimpleServerError::HandlingRequest)?,
+        Ok(redirect) => match config.find_redirect(&redirect.to_owned()) {
+            Some(r) => Ok(Response::builder()
+                .status(StatusCode::MOVED_PERMANENTLY)
+                .header("Location", r)
+                .body(vec![])),
+            None => Err(SimpleServerError::NoRedirect)?,
+        },
+    }
 }
