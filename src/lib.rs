@@ -93,7 +93,12 @@ fn handle_request(stream: &mut TcpStream, req: &Request, config: &Config) -> Res
     }
 
     // TODO: Better error handling when no prefix is present
-    let redirect = decode(req.target.strip_prefix("/").unwrap_or_default())?;
+    let raw_redirect = req
+        .target
+        .strip_prefix("/")
+        .map(|s| s.replace("+", " "))
+        .unwrap_or("".to_owned());
+    let redirect = decode(&raw_redirect)?;
 
     match config.find_redirect(&redirect.to_owned()) {
         Some(r) => {
