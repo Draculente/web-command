@@ -1,4 +1,3 @@
-#![feature(try_trait_v2)]
 use std::{env, fs, net::TcpListener, sync::Arc};
 
 pub mod config;
