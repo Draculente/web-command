@@ -1,7 +1,9 @@
-use std::fs;
+use std::{env, fs};
 
 use serde_derive::Deserialize;
 use urlencoding::encode;
+
+type Result<T> = std::result::Result<T, &'static str>;
 
 #[derive(Debug)]
 struct SearchConfig {
@@ -31,10 +33,10 @@ pub struct Config {
 
 impl Config {
     pub fn read_from_config(path: &str) -> Config {
-        let content = fs::read_to_string(path)
-            .expect(format!("please provide a config file at {}", path).as_str());
+        let content = load_config(path);
+        dbg!(&content);
 
-        let raw: RawConfig = toml::from_str(content.as_str())
+        let raw: RawConfig = toml::from_str(content.expect("Failed to load config").as_str())
             .expect(format!("error in the config file at {}", path).as_str());
 
         Config {
@@ -76,5 +78,34 @@ impl Config {
                 );
                 redirect
             })
+    }
+}
+
+fn load_config(path: &str) -> Result<String> {
+    let is_config_host = env::var("WEBCOMMAND_HOST_MODE").is_ok();
+    println!(
+        "Executing as {}.",
+        if is_config_host {
+            "config host"
+        } else {
+            "config mirror"
+        }
+    );
+
+    if is_config_host {
+        fs::read_to_string(path).map_err(|_| "please provide the config file")
+    } else {
+        let config_host = env::var("WEBCOMMAND_CONFIG")
+            .map_err(|_| "Please provide the url to the config host in WEBCOMMAND_CONFIG.")?;
+        let mut config_host = config_host
+            .strip_suffix("/")
+            .unwrap_or_else(|| &config_host)
+            .to_owned();
+        config_host.push_str("/u/");
+        dbg!(&config_host);
+        reqwest::blocking::get(config_host)
+            .map_err(|_| "Failed to fetch the config.")?
+            .text()
+            .map_err(|_| "Failed to parse fetched config")
     }
 }
