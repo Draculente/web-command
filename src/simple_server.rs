@@ -3,7 +3,7 @@ use std::{
     fmt,
     io::{BufWriter, Read, Write},
     net::{TcpListener, TcpStream},
-    sync::Arc,
+    sync::{Arc, RwLock},
     thread,
     time::Duration,
 };
@@ -26,6 +26,7 @@ pub enum SimpleServerError {
     HandlingRequest,
     NotFound,
     NoRedirect,
+    Acquiring,
 }
 
 impl Error for SimpleServerError {}
@@ -44,26 +45,32 @@ impl fmt::Display for SimpleServerError {
             SimpleServerError::HandlingRequest => write!(f, "Error while handling request"),
             SimpleServerError::NotFound => write!(f, "Not found"),
             SimpleServerError::NoRedirect => write!(f, "No redirect"),
+            SimpleServerError::Acquiring => write!(f, "Error while acquiring lock on config"),
         }
     }
 }
 
-pub type RequestHandlerFunc = fn(&Request, &Config) -> Result<SResponse>;
+#[derive(Copy, Clone)]
+pub enum RequestHandlerFunc {
+    ReadFunc(fn(&Request, &Config) -> Result<SResponse>),
+    WriteFunc(fn(&Request, &mut Config) -> Result<SResponse>),
+}
 
 struct RequestHandler {
     method: Method,
     path: String,
     f: RequestHandlerFunc,
+    write: bool,
 }
 
 pub struct SimpleServer {
     handlers: Vec<RequestHandler>,
     listener: TcpListener,
-    config: Arc<Config>,
+    config: Arc<RwLock<Config>>,
 }
 
 impl SimpleServer {
-    pub fn new(listener: TcpListener, config: Arc<Config>) -> SimpleServer {
+    pub fn new(listener: TcpListener, config: Arc<RwLock<Config>>) -> SimpleServer {
         SimpleServer {
             handlers: Vec::new(),
             listener,
@@ -72,10 +79,25 @@ impl SimpleServer {
     }
 
     pub fn add_handler(&mut self, method: Method, path: &str, f: RequestHandlerFunc) {
+        self.add_handler_intern(method, path, f, false)
+    }
+
+    pub fn add_write_handler(&mut self, method: Method, path: &str, f: RequestHandlerFunc) {
+        self.add_handler_intern(method, path, f, true)
+    }
+
+    fn add_handler_intern(
+        &mut self,
+        method: Method,
+        path: &str,
+        f: RequestHandlerFunc,
+        write: bool,
+    ) {
         self.handlers.push(RequestHandler {
             method,
             path: path.to_string(),
             f,
+            write,
         });
     }
 
@@ -111,7 +133,7 @@ impl SimpleServer {
                 let h = handler.f.clone();
                 let c = Arc::clone(&self.config);
                 thread::spawn(move || {
-                    if let Err(e) = send_response(&mut stream, h, &req, &c) {
+                    if let Err(e) = send_response(&mut stream, h, &req, c) {
                         if let Err(err) = Response::builder()
                             .status(500)
                             .body(e.to_string().into_bytes())
@@ -152,10 +174,20 @@ fn send_response(
     stream: &mut TcpStream,
     handler: RequestHandlerFunc,
     req: &Request,
-    config: &Config,
+    config: Arc<RwLock<Config>>,
 ) -> Result<()> {
     let writer = BufWriter::new(&*stream);
-    if let Ok(response) = (handler)(req, config)? {
+    let handler_res = match handler {
+        RequestHandlerFunc::WriteFunc(f) => {
+            let mut c = config.write().map_err(|_| SimpleServerError::Acquiring)?;
+            (f)(req, &mut c)
+        }
+        RequestHandlerFunc::ReadFunc(f) => {
+            let c = config.read().map_err(|_| SimpleServerError::Acquiring)?;
+            (f)(req, &c)
+        }
+    };
+    if let Ok(response) = handler_res? {
         write_response_header(&response, writer)?;
         stream.write_all(response.body())?;
     } else {

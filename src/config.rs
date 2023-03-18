@@ -29,18 +29,21 @@ struct RawConfig {
 pub struct Config {
     pub path: String,
     sites: Vec<SearchConfig>,
+    pub is_config_host: bool,
 }
 
 impl Config {
-    pub fn read_from_config(path: &str) -> Config {
-        let content = load_config(path);
+    pub fn read_from_config(path: &str) -> Result<Config> {
+        let is_config_host = env::var("WEBCOMMAND_HOST_MODE").is_ok();
+        let content = load_config(path, is_config_host);
         dbg!(&content);
 
-        let raw: RawConfig = toml::from_str(content.expect("Failed to load config").as_str())
-            .expect(format!("error in the config file at {}", path).as_str());
+        let raw: RawConfig =
+            toml::from_str(content?.as_str()).map_err(|_| "error in the config file")?;
 
-        Config {
+        Ok(Config {
             path: path.to_string(),
+            is_config_host,
             sites: raw
                 .sites
                 .into_iter()
@@ -54,7 +57,13 @@ impl Config {
                         .expect("please indicate the position to be replaced in an url with {{s}}"),
                 })
                 .collect(),
-        }
+        })
+    }
+
+    pub fn reload_config(&mut self) -> Result<()> {
+        let c = Config::read_from_config(&self.path)?;
+        self.sites = c.sites;
+        Ok(())
     }
 
     pub fn find_redirect(&self, search_string: &str) -> Option<String> {
@@ -83,8 +92,7 @@ impl Config {
     }
 }
 
-fn load_config(path: &str) -> Result<String> {
-    let is_config_host = env::var("WEBCOMMAND_HOST_MODE").is_ok();
+fn load_config(path: &str, is_config_host: bool) -> Result<String> {
     println!(
         "Executing as {}.",
         if is_config_host {

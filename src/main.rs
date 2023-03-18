@@ -1,4 +1,7 @@
-use std::{env, sync::Arc};
+use std::{
+    env,
+    sync::{Arc, RwLock},
+};
 
 use web_command::config::Config;
 
@@ -9,7 +12,7 @@ fn main() {
             .as_str(),
     );
 
-    if let Err(e) = web_command::run(Arc::new(c)) {
+    if let Err(e) = web_command::run(Arc::new(RwLock::new(c.unwrap()))) {
         println!("there was an error:\n{}", e);
     }
 }

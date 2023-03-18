@@ -1,4 +1,8 @@
-use std::{env, fs, net::TcpListener, sync::Arc};
+use std::{
+    env, fs,
+    net::TcpListener,
+    sync::{Arc, RwLock},
+};
 
 pub mod config;
 mod simple_server;
@@ -7,17 +11,32 @@ use http_bytes::{
     http::{Method, Response, StatusCode},
     Request,
 };
-use simple_server::{Result as SResult, SResponse, SimpleServer, SimpleServerError};
+use simple_server::{
+    RequestHandlerFunc, Result as SResult, SResponse, SimpleServer, SimpleServerError,
+};
 use urlencoding::decode;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-pub fn run(config: Arc<Config>) -> Result<()> {
+pub fn run(config: Arc<RwLock<Config>>) -> Result<()> {
     let listener = TcpListener::bind(format!("0.0.0.0:{}", env::var("WEBCOMMAND_PORT")?))?;
 
     let mut server = SimpleServer::new(listener, config);
-    server.add_handler(Method::GET, "/u/", send_config_file);
-    server.add_handler(Method::GET, "/", redirect_handler);
+    server.add_handler(
+        Method::GET,
+        "/u/",
+        RequestHandlerFunc::ReadFunc(send_config_file),
+    );
+    server.add_write_handler(
+        Method::GET,
+        "/r/",
+        RequestHandlerFunc::WriteFunc(reload_config_handler),
+    );
+    server.add_handler(
+        Method::GET,
+        "/",
+        RequestHandlerFunc::ReadFunc(redirect_handler),
+    );
     server.run()?;
 
     Ok(())
@@ -25,13 +44,33 @@ pub fn run(config: Arc<Config>) -> Result<()> {
 
 fn send_config_file(_: &Request, config: &Config) -> SResult<SResponse> {
     let file = fs::read_to_string(config.path.as_str())?;
+    let file_bytes = file.as_bytes();
 
     Ok(Response::builder()
         .status(200)
         .header("Content-Type", "text/plain")
         .header("Access-Control-Allow-Origin", "*")
-        .header("Content-Length", file.as_bytes().len())
-        .body(file.as_bytes().to_vec()))
+        .header("Content-Length", file_bytes.len())
+        .body(file_bytes.to_vec()))
+}
+
+fn reload_config_handler(_: &Request, config: &mut Config) -> SResult<SResponse> {
+    if !config.is_config_host {
+        if let Err(e) = reqwest::blocking::get(&config.path) {
+            eprintln!("Error while triggering reload on config host: {}", e);
+        }
+    }
+
+    config
+        .reload_config()
+        .map_err(|_| SimpleServerError::HandlingRequest)?;
+    let response_text = "Reloaded configuration".as_bytes();
+    let response = Response::builder()
+        .status(StatusCode::OK)
+        .header("Content-Type", "text/plain")
+        .header("Content-Length", response_text.len())
+        .body(response_text.to_vec());
+    Ok(response)
 }
 
 fn redirect_handler(req: &Request, config: &Config) -> SResult<SResponse> {
