@@ -6,7 +6,7 @@ use std::{
 
 pub mod config;
 mod simple_server;
-use config::Config;
+use config::{get_config_url, Config};
 use http_bytes::{
     http::{Method, Response, StatusCode},
     Request,
@@ -27,7 +27,7 @@ pub fn run(config: Arc<RwLock<Config>>) -> Result<()> {
         "/u/",
         RequestHandlerFunc::ReadFunc(send_config_file),
     );
-    server.add_write_handler(
+    server.add_handler(
         Method::GET,
         "/r/",
         RequestHandlerFunc::WriteFunc(reload_config_handler),
@@ -43,15 +43,22 @@ pub fn run(config: Arc<RwLock<Config>>) -> Result<()> {
 }
 
 fn send_config_file(_: &Request, config: &Config) -> SResult<SResponse> {
-    let file = fs::read_to_string(config.path.as_str())?;
-    let file_bytes = file.as_bytes();
+    if config.is_config_host {
+        let response = fs::read_to_string(config.path.as_str())?;
+        let res_bytes = response.as_bytes();
 
-    Ok(Response::builder()
-        .status(200)
-        .header("Content-Type", "text/plain")
-        .header("Access-Control-Allow-Origin", "*")
-        .header("Content-Length", file_bytes.len())
-        .body(file_bytes.to_vec()))
+        Ok(Response::builder()
+            .status(200)
+            .header("Content-Type", "text/plain")
+            .header("Access-Control-Allow-Origin", "*")
+            .header("Content-Length", res_bytes.len())
+            .body(res_bytes.to_vec()))
+    } else {
+        Ok(Response::builder()
+            .status(StatusCode::MOVED_PERMANENTLY)
+            .header("Location", get_config_url(&config.path))
+            .body(vec![]))
+    }
 }
 
 fn reload_config_handler(_: &Request, config: &mut Config) -> SResult<SResponse> {

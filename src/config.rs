@@ -36,7 +36,6 @@ impl Config {
     pub fn read_from_config(path: &str) -> Result<Config> {
         let is_config_host = env::var("WEBCOMMAND_HOST_MODE").is_ok();
         let content = load_config(path, is_config_host);
-        dbg!(&content);
 
         let raw: RawConfig =
             toml::from_str(content?.as_str()).map_err(|_| "error in the config file")?;
@@ -107,15 +106,16 @@ fn load_config(path: &str, is_config_host: bool) -> Result<String> {
     } else {
         let config_host = env::var("WEBCOMMAND_CONFIG")
             .map_err(|_| "Please provide the url to the config host in WEBCOMMAND_CONFIG.")?;
-        let mut config_host = config_host
-            .strip_suffix("/")
-            .unwrap_or_else(|| &config_host)
-            .to_owned();
-        config_host.push_str("/u/");
-        dbg!(&config_host);
+        let config_host = get_config_url(&config_host);
         reqwest::blocking::get(config_host)
             .map_err(|_| "Failed to fetch the config.")?
             .text()
             .map_err(|_| "Failed to parse fetched config")
     }
+}
+
+pub fn get_config_url(host: &str) -> String {
+    let mut config_host = host.strip_suffix("/").unwrap_or_else(|| &host).to_owned();
+    config_host.push_str("/u/");
+    config_host
 }

@@ -60,7 +60,6 @@ struct RequestHandler {
     method: Method,
     path: String,
     f: RequestHandlerFunc,
-    write: bool,
 }
 
 pub struct SimpleServer {
@@ -79,25 +78,10 @@ impl SimpleServer {
     }
 
     pub fn add_handler(&mut self, method: Method, path: &str, f: RequestHandlerFunc) {
-        self.add_handler_intern(method, path, f, false)
-    }
-
-    pub fn add_write_handler(&mut self, method: Method, path: &str, f: RequestHandlerFunc) {
-        self.add_handler_intern(method, path, f, true)
-    }
-
-    fn add_handler_intern(
-        &mut self,
-        method: Method,
-        path: &str,
-        f: RequestHandlerFunc,
-        write: bool,
-    ) {
         self.handlers.push(RequestHandler {
             method,
             path: path.to_string(),
             f,
-            write,
         });
     }
 
