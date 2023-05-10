@@ -19,7 +19,10 @@ use urlencoding::decode;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 pub fn run(config: Arc<RwLock<Config>>) -> Result<()> {
-    let listener = TcpListener::bind(format!("0.0.0.0:{}", env::var("WEBCOMMAND_PORT")?))?;
+    let listener = TcpListener::bind(format!(
+        "0.0.0.0:{}",
+        env::var("WEBCOMMAND_PORT").unwrap_or("8012".to_owned())
+    ))?;
 
     let mut server = SimpleServer::new(listener, config);
     server.add_handler(
