@@ -18,6 +18,7 @@ url = "https://duckduckgo.com/?q={{s}}"
 [[sites]]
 name = "duden"
 key = "du"
+alias = ["duden"]
 url = "http://www.duden.de/suchen/dudenonline/{{s}}"
 ```
 
