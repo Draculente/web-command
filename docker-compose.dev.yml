@@ -1,0 +1,15 @@
+version: "3.3"
+
+services:
+  wsh:
+    # image: webcommand/wsh:local
+    build: .
+    volumes:
+      # Mount the current directory to the app directory in the container.
+      # Put the sites.toml file in the current directory.
+      - ./:/app
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - 8013:8012
