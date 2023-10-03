@@ -1,0 +1,15 @@
+[Unit]
+Description=A service for bang commands like duckduckgo
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sh -c 'until ping -c1 google.com; do sleep 1; done;'
+WorkingDirectory=<PATH_TO_YOUR_DIRECTORY>
+ExecStart=<PATH_TO_EXECUTABLE>
+# Other restart options: always, on-abort, etc
+Restart=always
+EnvironmentFile=<PATH_TO_YOUR_ENV_FILE>
+
+[Install]
+WantedBy=default.target

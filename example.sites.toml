@@ -1,0 +1,304 @@
+prefix = "."
+
+[[sites]]
+name = "duckduckgo"
+key = "d"
+url = "https://duckduckgo.com/?q={{s}}"
+[[sites]]
+name = "startpage"
+key = "s"
+alias = ["startpage"]
+url = " https://www.startpage.com/sp/search?query={{s}}"
+[[sites]]
+name = "Metager"
+key = "mg"
+url = "https://metager.de/meta/meta.ger3?eingabe={{s}}&focus=web"
+[[sites]]
+name = "duden"
+key = "du"
+alias = ["duden"]
+url = "http://www.duden.de/suchen/dudenonline/{{s}}"
+[[sites]]
+name = "google"
+key = "g"
+url = "https://google.com/search?q={{s}}"
+[[sites]]
+name = "mdn"
+key = "mdn"
+url = "https://developer.mozilla.org/en-US/search?q={{s}}"
+[[sites]]
+name = "crates"
+key = "c"
+alias = ["cr", "crates"]
+url = "https://crates.io/search?q={{s}}"
+[[sites]]
+name = "justwatch"
+key = "j"
+alias = ["jw", "justwatch"]
+url = "https://www.justwatch.com/de/Suche?q={{s}}"
+[[sites]]
+name = "wikipedia"
+key = "w"
+alias = ["wiki"]
+url = "https://de.wikipedia.org/wiki/Special:Search?search={{s}}"
+[[sites]]
+name = "wikipedia englisch"
+key = "we"
+url = "https://en.wikipedia.org/wiki/Special:Search?search={{s}}"
+[[sites]]
+name = "Search Github"
+key = "gh"
+url = "https://github.com/search?q={{s}}"
+[[sites]]
+name = "Dursuchen der eigenen Github Reps"
+key = "git"
+url = "https://github.com/?q={{s}}"
+[[sites]]
+name = "Youtube"
+key = "y"
+alias = ["yt"]
+url = "https://www.youtube.com/results?search_query={{s}}"
+[[sites]]
+name = "Amazon"
+key = "a"
+alias = ["amazon"]
+url = "https://www.amazon.de/s/?url=search-alias%3Daps&field-keywords={{s}}"
+[[sites]]
+name = "ARD Mediathek"
+key = "ard"
+url = "https://www.ardmediathek.de/suche/{{s}}"
+[[sites]]
+name = "ZDF Mediathek"
+key = "zdf"
+url = "https://www.zdf.de/suche?q={{s}}&sender=Gesamtes+Angebot"
+[[sites]]
+name = "Google Docs"
+key = "docs"
+url = "https://docs.google.com/document/u/0/?q={{s}}"
+[[sites]]
+name = "NPMjs"
+key = "npm"
+url = "https://www.npmjs.com/search?q={{s}}"
+[[sites]]
+name = "Ebay de"
+key = "ebay"
+url = "https://www.ebay.de/sch/i.html?_nkw={{s}}"
+[[sites]]
+name = "Reddit"
+key = "reddit"
+url = "https://www.reddit.com/search/?q={{s}}"
+[[sites]]
+name = "Google Images"
+key = "gi"
+url = "https://www.google.com/search?q={{s}}&newwindow=1&tbs=imgo:1&tbm=isch"
+[[sites]]
+name = "Google Maps"
+key = "m"
+alias = ["maps"]
+url = "https://google.com/maps?q={{s}}"
+[[sites]]
+name = "Rust Docs"
+key = "r"
+alias = ["rs"]
+url = "https://doc.rust-lang.org/std/?search={{s}}"
+[[sites]]
+name = "Deepl von Englisch nach Deutsch"
+key = "de"
+url = "https://www.deepl.com/translator#en/de/{{s}}"
+[[sites]]
+name = "Leo Deutsch Englisch"
+key = "leo"
+url = "https://dict.leo.org/englisch-deutsch/{{s}}"
+[[sites]]
+name = "Unsplash"
+key = "un"
+url = "https://unsplash.com/s/photos/{{s}}"
+[[sites]]
+name = "Google Fonts"
+key = "f"
+alias = ["fonts", "font"]
+url = "https://fonts.google.com/?query={{s}}"
+[[sites]]
+name = "Dribbble"
+key = "drib"
+url = "https://dribbble.com/search/{{s}}"
+[[sites]]
+name = "Python Package Index"
+key = "pip"
+url = "https://pypi.org/search/?q={{s}}"
+[[sites]]
+name = "Steam"
+key = "steam"
+url = "https://store.steampowered.com/search/?term={{s}}"
+[[sites]]
+name = "Epic Game Store"
+key = "epic"
+url = "https://store.epicgames.com/de/browse?q={{s}}&sortBy=relevancy&sortDir=DESC&count=40"
+[[sites]]
+name = "Wolfram Alpha"
+key = "wa"
+url = "https://www.wolframalpha.com/input?i={{s}}"
+[[sites]]
+name = "You Search Engine"
+key = "you"
+url = "https://you.com/search?q={{s}}&fromSearchBar=true&tbm=youchat"
+[[sites]]
+name = "Chrome Web Store"
+key = "chrome"
+url = "https://chrome.google.com/webstore/search/{{s}}?hl=de"
+[[sites]]
+name = "VS Code Marketplace"
+key = "vscode"
+url = "https://marketplace.visualstudio.com/search?term={{s}}&target=VSCode&category=All%20categories&sortBy=Relevance"
+[[sites]]
+name = "Google Kontakte"
+key = "gco"
+url = "https://contacts.google.com/search/{{s}}"
+[[sites]]
+name = "Python Docs"
+key = "py"
+url = "https://docs.python.org/3/search.html?q={{s}}"
+[[sites]]
+name = "Haskell Docs"
+key = "hoogle"
+url = "https://hoogle.haskell.org/?hoogle={{s}}"
+[[sites]]
+name = "Google Drive"
+key = "drive"
+url = "https://drive.google.com/drive/search?q={{s}}"
+[[sites]]
+name = "Google Photos"
+key = "gphotos"
+alias = ["photos", "photo"]
+url = "https://photos.google.com/search/{{s}}"
+[[sites]]
+name = "Duden Synonyme"
+key = "sy"
+url = "https://www.duden.de/synonyme/{{s}}"
+[[sites]]
+name = "Lib.rs Package Registry"
+key = "lib"
+alias = ["librs", "rustpack"]
+url = "https://lib.rs/search?q={{s}}"
+[[sites]]
+name = "Openstreet Map"
+key = "om"
+url = "https://www.openstreetmap.org/search?query={{s}}"
+[[sites]]
+name = "Telefonvorwahl"
+key = "tel"
+url = "https://www.telefonvorwahlen.net/de/prefix/{{s}}"
+[[sites]]
+name = "Firefox Addons"
+key = "firefox"
+url = "https://addons.mozilla.org/de/firefox/search/?q={{s}}"
+[[sites]]
+name = "DuckDuckGo Bangs"
+key = "bangs"
+url = "https://duckduckgo.com/bangs?q={{s}}"
+[[sites]]
+name = "Wikidata"
+key = "wdt"
+url = "https://www.wikidata.org/w/index.php?fulltext=Search&search={{s}}"
+[[sites]]
+name = "Number Gossip"
+key = "ng"
+url = "http://www.numbergossip.com/?number={{s}}"
+[[sites]]
+name = "Media CCC"
+key = "mccc"
+url = "https://media.ccc.de/search/?q={{s}}"
+[[sites]]
+name = "Spotify"
+key = "sp"
+alias = ["spotify"]
+url = "https://open.spotify.com/search/{{s}}"
+[[sites]]
+name = "Netflix"
+key = "nt"
+alias = ["netflix"]
+url = "https://www.netflix.com/search?q={{s}}"
+[[sites]]
+name = "Rotten Tomatoes"
+key = "rt"
+url = "https://www.rottentomatoes.com/search?search={{s}}"
+[[sites]]
+name = "Imdb"
+key = "imdb"
+url = "https://www.imdb.com/find/?s=all&q={{s}}"
+[[sites]]
+name = "ISBN Database"
+key = "isbn"
+url = "https://isbndb.com/search/books/{{s}}"
+[[sites]]
+name = "Thalia.de"
+key = "thalia"
+url = "https://www.thalia.de/suche?sq={{s}}"
+[[sites]]
+name = "Google Books"
+key = "gb"
+alias = ["books"]
+url = "https://www.google.com/search?hl=de&tbo=p&tbm=bks&q={{s}}"
+[[sites]]
+name = "Who is Domain Search"
+key = "whois"
+url = "https://www.whois.com/whois/{{s}}"
+[[sites]]
+name = "Time.is"
+key = "time"
+url = "https://time.is/{{s}}"
+[[sites]]
+name = "Timer"
+key = "timer"
+url = "https://e.ggtimer.com/{{s}}"
+[[sites]]
+name = "W3C HTML Validator"
+key = "html"
+url = "https://validator.w3.org/nu/?doc={{s}}"
+[[sites]]
+name = "Docker Hub"
+key = "docker"
+url = "https://hub.docker.com/search?q={{s}}"
+[[sites]]
+name = "Snapcraft Store"
+key = "snap"
+url = "https://snapcraft.io/search?q={{s}}"
+[[sites]]
+name = "Google Scholar"
+key = "scholar"
+alias = ["gs"]
+url = "https://scholar.google.com/scholar?hl=de&as_sdt=0%2C5&q={{s}}"
+[[sites]]
+name = "Wikimedia Commons"
+key = "wc"
+alias = ["commons"]
+url = "https://commons.wikimedia.org/w/index.php?search={{s}}"
+[[sites]]
+name = "Emojipedia"
+key = "em"
+alias = ["emoji"]
+url = "https://emojipedia.org/search/?q={{s}}"
+[[sites]]
+name = "Lucide Icons"
+key = "lu"
+alias = ["icon"]
+url = "https://lucide.dev/icons/?search={{s}}"
+[[sites]]
+name = "Can i use"
+key = "cani"
+url = "https://caniuse.com/?search={{s}}"
+[[sites]]
+name = "Flathub for Flatpak"
+key = "flathub"
+alias = ["flat", "fhub", "flatpak", "flatpack"]
+url = "https://flathub.org/apps/search?q={{s}}"
+[[sites]]
+name = "Open Data EU"
+key = "eudata"
+alias = ["opendata", "data"]
+url = "https://data.europa.eu/data/datasets?locale=de&query={{s}}&page=1"
+[[sites]]
+name = "Bund.de online Verwaltung"
+key = "bund"
+alias = ["verwaltung"]
+url = "https://verwaltung.bund.de/leistungsverzeichnis/DE/suche?q={{s}}"
