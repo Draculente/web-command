@@ -1,6 +1,5 @@
 use std::{
     error::Error,
-    fmt,
     io::{BufWriter, Read, Write},
     net::{TcpListener, TcpStream},
     sync::{Arc, RwLock},
@@ -8,6 +7,7 @@ use std::{
     time::Duration,
 };
 
+use anyhow::anyhow;
 use http_bytes::{
     http::{Method, Response},
     parse_request_header_easy, write_response_header, Request,
@@ -15,45 +15,12 @@ use http_bytes::{
 
 use crate::config::Config;
 
-pub type Result<T> = std::result::Result<T, SimpleServerError>;
-
-pub type SResponse = std::result::Result<Response<Vec<u8>>, http_bytes::http::Error>;
-
-#[derive(Debug)]
-pub enum SimpleServerError {
-    ParsingRequest,
-    HandlingClient,
-    HandlingRequest,
-    NotFound,
-    NoRedirect,
-    Acquiring,
-}
-
-impl Error for SimpleServerError {}
-
-impl From<std::io::Error> for SimpleServerError {
-    fn from(_: std::io::Error) -> Self {
-        SimpleServerError::HandlingClient
-    }
-}
-
-impl fmt::Display for SimpleServerError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            SimpleServerError::ParsingRequest => write!(f, "Error while parsing request"),
-            SimpleServerError::HandlingClient => write!(f, "Error while handling client"),
-            SimpleServerError::HandlingRequest => write!(f, "Error while handling request"),
-            SimpleServerError::NotFound => write!(f, "Not found"),
-            SimpleServerError::NoRedirect => write!(f, "No redirect"),
-            SimpleServerError::Acquiring => write!(f, "Error while acquiring lock on config"),
-        }
-    }
-}
+pub type SResponse = anyhow::Result<Response<Vec<u8>>, http_bytes::http::Error>;
 
 #[derive(Copy, Clone)]
 pub enum RequestHandlerFunc {
-    ReadFunc(fn(&Request, &Config) -> Result<SResponse>),
-    WriteFunc(fn(&Request, &mut Config) -> Result<SResponse>),
+    ReadFunc(fn(&Request, &Config) -> anyhow::Result<SResponse>),
+    WriteFunc(fn(&Request, &mut Config) -> anyhow::Result<SResponse>),
 }
 
 struct RequestHandler {
@@ -87,41 +54,44 @@ impl SimpleServer {
 
     pub fn run(&self) -> std::result::Result<(), Box<dyn Error>> {
         for stream in self.listener.incoming() {
-            let s = stream?;
-            if let Err(e) = self.handle_client(s) {
-                println!("Err {}", e);
+            let mut s = stream?;
+            if let Err(e) = self.handle_client(&mut s) {
+                send_error(&mut s, &e);
             }
         }
         Ok(())
     }
 
-    fn handle_client(&self, mut stream: TcpStream) -> Result<()> {
+    fn handle_client(&self, stream: &mut TcpStream) -> anyhow::Result<()> {
         let mut buf = vec![0u8; 1024 * 2];
 
-        if let Err(_) = stream.set_read_timeout(Some(Duration::from_millis(1000))) {
-            //TODO: Errorhandling;
-        }
+        stream.set_read_timeout(Some(Duration::from_millis(1000)))?;
 
-        if let Err(_) = stream.set_write_timeout(Some(Duration::from_millis(1000))) {
-            //TODO: Errorhandling;
-        }
+        stream.set_write_timeout(Some(Duration::from_millis(1000)))?;
 
         stream.read(&mut buf)?;
 
-        if let Ok(Some((req, _))) = parse_request_header_easy(&buf) {
+        // TODO: If the buffer has not enough data yet, we should read again.
+        // In this case the parse_request method returns a Ok(None).
+        let request = parse_request_header_easy(&buf)?;
+
+        if let Some((req, _)) = request {
             if let Some(handler) = self
                 .handlers
                 .iter()
                 .find(|h| h.method == req.method() && req.uri().to_string().starts_with(&h.path))
             {
+                // TODO: This is too much cloning!
                 let h = handler.f.clone();
                 let c = Arc::clone(&self.config);
+                let mut s = stream.try_clone()?;
+
                 thread::spawn(move || {
-                    if let Err(e) = send_response(&mut stream, h, &req, c) {
+                    if let Err(e) = send_response(&mut s, h, &req, c) {
                         if let Err(err) = Response::builder()
                             .status(500)
                             .body(e.to_string().into_bytes())
-                            .map(|r| write_response_header(&r, stream))
+                            .map(|r| write_response_header(&r, s))
                         {
                             println!("Err {}", err);
                         }
@@ -129,15 +99,19 @@ impl SimpleServer {
                 });
                 return Ok(());
             } else {
-                send_error(&mut stream, SimpleServerError::NotFound);
+                return Err(anyhow!(
+                    "Not found for method {} on {}",
+                    req.method(),
+                    req.uri().to_string()
+                ));
             }
         }
 
-        Err(SimpleServerError::ParsingRequest)
+        Err(anyhow!("Error while parsing request"))
     }
 }
 
-fn send_error(stream: &mut TcpStream, err: SimpleServerError) {
+fn send_error(stream: &mut TcpStream, err: &anyhow::Error) {
     println!("Err {}", err);
     let message = err.to_string().into_bytes();
     let writer = BufWriter::new(&*stream);
@@ -149,7 +123,7 @@ fn send_error(stream: &mut TcpStream, err: SimpleServerError) {
     if let Err(e) = write_response_header(&response, writer) {
         println!("Err {}", e);
     }
-    if let Err(e) = stream.write_all(&message) {
+    if let Err(e) = stream.write_all(&response.body()) {
         println!("Err {}", e);
     }
 }
@@ -159,15 +133,19 @@ fn send_response(
     handler: RequestHandlerFunc,
     req: &Request,
     config: Arc<RwLock<Config>>,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     let writer = BufWriter::new(&*stream);
     let handler_res = match handler {
         RequestHandlerFunc::WriteFunc(f) => {
-            let mut c = config.write().map_err(|_| SimpleServerError::Acquiring)?;
+            let mut c = config
+                .write()
+                .map_err(|e| anyhow!("Err {}", e.to_string()))?;
             (f)(req, &mut c)
         }
         RequestHandlerFunc::ReadFunc(f) => {
-            let c = config.read().map_err(|_| SimpleServerError::Acquiring)?;
+            let c = config
+                .read()
+                .map_err(|e| anyhow!("Err {}", e.to_string()))?;
             (f)(req, &c)
         }
     };
@@ -175,7 +153,7 @@ fn send_response(
         write_response_header(&response, writer)?;
         stream.write_all(response.body())?;
     } else {
-        return Err(SimpleServerError::HandlingRequest);
+        return Err(anyhow!("Error while handling request"));
     }
     Ok(())
 }

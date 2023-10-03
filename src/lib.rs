@@ -6,14 +6,13 @@ use std::{
 
 pub mod config;
 mod simple_server;
-use config::{get_config_url, Config};
+use clap::crate_version;
+use config::{get_config_url, get_reload_url, Config};
 use http_bytes::{
     http::{Method, Response, StatusCode},
     Request,
 };
-use simple_server::{
-    RequestHandlerFunc, Result as SResult, SResponse, SimpleServer, SimpleServerError,
-};
+use simple_server::{RequestHandlerFunc, SResponse, SimpleServer};
 use urlencoding::decode;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -37,6 +36,18 @@ pub fn run(config: Arc<RwLock<Config>>) -> Result<()> {
     );
     server.add_handler(
         Method::GET,
+        "/i/",
+        RequestHandlerFunc::ReadFunc(|_, _| {
+            let info = format!("WSH v{}\nMade with love in the European Union\nhttps://github.com/Draculente/web-command\n", crate_version!());
+            Ok(Response::builder()
+                .status(StatusCode::OK)
+                .header("Content-Type", "text/plain")
+                .header("Content-Length", info.len())
+                .body(info.as_bytes().to_vec()))
+        }),
+    );
+    server.add_handler(
+        Method::GET,
         "/",
         RequestHandlerFunc::ReadFunc(redirect_handler),
     );
@@ -45,13 +56,13 @@ pub fn run(config: Arc<RwLock<Config>>) -> Result<()> {
     Ok(())
 }
 
-fn send_config_file(_: &Request, config: &Config) -> SResult<SResponse> {
+fn send_config_file(_: &Request, config: &Config) -> anyhow::Result<SResponse> {
     if config.is_config_host {
-        let response = fs::read_to_string(config.path.as_str())?;
+        let response = fs::read_to_string(config.location.as_str())?;
         let res_bytes = response.as_bytes();
 
         Ok(Response::builder()
-            .status(200)
+            .status(StatusCode::OK)
             .header("Content-Type", "text/plain")
             .header("Access-Control-Allow-Origin", "*")
             .header("Content-Length", res_bytes.len())
@@ -59,21 +70,19 @@ fn send_config_file(_: &Request, config: &Config) -> SResult<SResponse> {
     } else {
         Ok(Response::builder()
             .status(StatusCode::MOVED_PERMANENTLY)
-            .header("Location", get_config_url(&config.path))
+            .header("Location", get_config_url(&config.location))
             .body(vec![]))
     }
 }
 
-fn reload_config_handler(_: &Request, config: &mut Config) -> SResult<SResponse> {
+fn reload_config_handler(_: &Request, config: &mut Config) -> anyhow::Result<SResponse> {
     if !config.is_config_host {
-        if let Err(e) = reqwest::blocking::get(&config.path) {
+        if let Err(e) = reqwest::blocking::get(get_reload_url(&config.location)) {
             eprintln!("Error while triggering reload on config host: {}", e);
         }
     }
 
-    config
-        .reload_config()
-        .map_err(|_| SimpleServerError::HandlingRequest)?;
+    config.reload_config()?;
     let response_text = "Reloaded configuration".as_bytes();
     let response = Response::builder()
         .status(StatusCode::OK)
@@ -83,22 +92,19 @@ fn reload_config_handler(_: &Request, config: &mut Config) -> SResult<SResponse>
     Ok(response)
 }
 
-fn redirect_handler(req: &Request, config: &Config) -> SResult<SResponse> {
-    let raw_redirect = req
+fn redirect_handler(req: &Request, config: &Config) -> anyhow::Result<SResponse> {
+    let raw_search_string = req
         .uri()
         .to_string()
         .strip_prefix("/")
         .map(|s| s.replace("+", " "))
         .unwrap_or("".to_owned());
 
-    match decode(&raw_redirect) {
-        Err(_) => Err(SimpleServerError::HandlingRequest)?,
-        Ok(redirect) => match config.find_redirect(&redirect.to_owned()) {
-            Some(r) => Ok(Response::builder()
-                .status(StatusCode::MOVED_PERMANENTLY)
-                .header("Location", r)
-                .body(vec![])),
-            None => Err(SimpleServerError::NoRedirect)?,
-        },
-    }
+    let search_string = decode(&raw_search_string)?;
+
+    let redirect_url = config.find_redirect(&search_string.to_owned());
+    Ok(Response::builder()
+        .status(StatusCode::MOVED_PERMANENTLY)
+        .header("Location", redirect_url)
+        .body(vec![]))
 }

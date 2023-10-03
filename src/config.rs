@@ -1,9 +1,8 @@
+use anyhow::anyhow;
 use std::{env, fs};
 
 use serde_derive::Deserialize;
 use urlencoding::encode;
-
-type Result<T> = std::result::Result<T, &'static str>;
 
 #[derive(Debug)]
 struct Replaceable {
@@ -28,7 +27,7 @@ struct RawConfig {
 
 #[derive(Debug)]
 pub struct Config {
-    pub path: String,
+    pub location: String,
     sites: Vec<Replaceable>,
     pub is_config_host: bool,
 }
@@ -51,12 +50,11 @@ impl Replaceable {
 }
 
 impl Config {
-    pub fn read_from_config(path: &str) -> Result<Config> {
+    pub fn read_from_config(location: &str) -> anyhow::Result<Config> {
         let is_config_host = env::var("WEBCOMMAND_HOST_MODE") == Ok("true".to_owned());
-        let content = load_config(path, is_config_host);
+        let content = load_config(location, is_config_host);
 
-        let raw: RawConfig =
-            toml::from_str(content?.as_str()).map_err(|_| "error in the config file")?;
+        let raw: RawConfig = toml::from_str(content?.as_str())?;
 
         let sites: Vec<Replaceable> = raw
             .sites
@@ -71,48 +69,51 @@ impl Config {
             .collect();
 
         Ok(Config {
-            path: path.to_string(),
+            location: location.to_string(),
             is_config_host,
             sites,
         })
     }
 
-    pub fn reload_config(&mut self) -> Result<()> {
-        let c = Config::read_from_config(&self.path)?;
+    pub fn reload_config(&mut self) -> anyhow::Result<()> {
+        let c = Config::read_from_config(&self.location)?;
         self.sites = c.sites;
         Ok(())
     }
 
-    pub fn find_redirect(&self, search_string: &str) -> Option<String> {
-        self.sites
+    pub fn find_redirect(&self, search_string: &str) -> String {
+        let e = self
+            .sites
             .iter()
             .map(|e| (e, true))
             .find(|e| {
                 search_string.ends_with(&e.0.key) || search_string.contains(&e.0.key_with_space)
             })
             .or_else(|| self.sites.get(0).map(|e| (e, false)))
-            .map(|e| {
-                let mut redirect = e.0.url.clone();
-                // let search_string = search_string.replace(&e.0.key_with_space, "");
-                let search_string = if e.1 {
-                    // Redirect was found by key, so we can remove the key from the search string
-                    search_string
-                        .replace(&e.0.key_with_space, "")
-                        .replace(&e.0.key, "")
-                } else {
-                    // No redirect was found. We redirect to the default site and do not replace anything
-                    search_string.to_owned()
-                };
-                redirect.insert_str(
-                    e.0.index_of_replace,
-                    encode(&search_string).into_owned().as_str(),
-                );
-                redirect
-            })
+            .expect("no commands found");
+
+        let mut redirect_url = e.0.url.clone();
+        // let search_string = search_string.replace(&e.0.key_with_space, "");
+        let search_string = if e.1 {
+            // Redirect was found by key, so we can remove the key from the search string
+            search_string
+                .replace(&e.0.key_with_space, "")
+                .replace(&e.0.key, "")
+        } else {
+            // No redirect was found. We redirect to the default site and do not replace anything
+            search_string.to_owned()
+        };
+
+        // We insert the search string at the position of the {{s}} placeholder
+        redirect_url.insert_str(
+            e.0.index_of_replace,
+            encode(&search_string).into_owned().as_str(),
+        );
+        redirect_url
     }
 }
 
-fn load_config(path: &str, is_config_host: bool) -> Result<String> {
+fn load_config(location: &str, is_config_host: bool) -> anyhow::Result<String> {
     println!(
         "Executing as {}.",
         if is_config_host {
@@ -123,20 +124,27 @@ fn load_config(path: &str, is_config_host: bool) -> Result<String> {
     );
 
     if is_config_host {
-        fs::read_to_string(path).map_err(|_| "please provide the config file")
+        fs::read_to_string(location).map_err(|_| anyhow!("please provide the config file"))
     } else {
-        let config_host = env::var("WEBCOMMAND_CONFIG")
-            .map_err(|_| "Please provide the url to the config host in WEBCOMMAND_CONFIG.")?;
+        let config_host = env::var("WEBCOMMAND_CONFIG").map_err(|_| {
+            anyhow!("please provide the url to the config host in WEBCOMMAND_CONFIG.")
+        })?;
         let config_host = get_config_url(&config_host);
-        reqwest::blocking::get(config_host)
-            .map_err(|_| "Failed to fetch the config.")?
-            .text()
-            .map_err(|_| "Failed to parse fetched config")
+        let config = reqwest::blocking::get(config_host)?.text()?;
+        Ok(config)
     }
 }
 
-pub fn get_config_url(host: &str) -> String {
+fn append_to_url(host: &str, path: &str) -> String {
     let mut config_host = host.strip_suffix("/").unwrap_or_else(|| &host).to_owned();
-    config_host.push_str("/u/");
+    config_host.push_str(path);
     config_host
+}
+
+pub fn get_config_url(host: &str) -> String {
+    append_to_url(&host, "/u/")
+}
+
+pub fn get_reload_url(host: &str) -> String {
+    append_to_url(&host, "/r/")
 }
