@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use web_command::config::Config;
+use wsh::config::Config;
 
 fn main() {
     let c = Config::read_from_config(
@@ -12,7 +12,7 @@ fn main() {
             .as_str(),
     );
 
-    if let Err(e) = web_command::run(Arc::new(RwLock::new(c.unwrap()))) {
+    if let Err(e) = wsh::run(Arc::new(RwLock::new(c.unwrap()))) {
         println!("there was an error:\n{}", e);
     }
 }

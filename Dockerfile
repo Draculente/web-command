@@ -10,4 +10,4 @@ COPY ./src ./src
 
 RUN cargo build --release
 
-CMD ["./target/release/web-command"]
+CMD ["./target/release/wsh"]
