@@ -2,7 +2,7 @@ version: "3.3"
 
 services:
   wsh:
-    image: ...
+    image: ghcr.io/draculente/web-command:latest
     volumes:
       # Mount the current directory to the app directory in the container.
       # Put the sites.toml file in the current directory.
