@@ -28,7 +28,7 @@ The first entry is the default. If no command is specified, the default command 
 
 Optionally a command can have an array of aliases. On load the aliases will be expanded to their own key. This is useful if you want to have multiple keys for the same site.
 
-A full example can be found [here](...).
+A full example can be found [here](https://github.com/Draculente/web-command/blob/master/example.sites.toml).
 
 If you update the configuration file, you can reload it by sending a GET request to `http://wsh.example.com:$WEBCOMMAND_PORT/r/`.
 
@@ -53,7 +53,7 @@ If you have a remote machine you can run the service on it and set the host mode
 
 ### Docker
 
-The easiest way to run the service is to use docker-compose. You can find an example docker-compose file [here](...).  
+The easiest way to run the service is to use docker-compose. You can find an example docker-compose file [here](./docker-compose.yml).  
 We set the restart policy to `unless-stopped` so that the service will be restarted on boot.  
 
 1. Create a new directory.
@@ -68,19 +68,19 @@ After some benchmarking I found that running the service via docker-compose incr
 
 ### Systemd
 
-The recommended way to run the service is to use systemd. You can find an example systemd service file [here](...).
+The recommended way to run the service is to use systemd. You can find an example systemd service file [here](./wsh.service).
 
 #### Running directly on the host
 
 1. Create a new directory.
-1. Download the appropriate binary from the [releases](...) page into that directory.
-1. Create a `.env` file in that directory and set the environment variables as described in `configuration`.
-1. IF YOU RUN IT AS HOST: Create a `sites.toml` file in that directory and set the sites as described in `configuration`.
-1. Copy the systemd service file into `/etc/systemd/user/wsh.service`.
-1. Adjust the service file to your needs.
-1. Run `systemctl --user daemon-reload`.
-1. Run `systemctl --user enable wsh.service`.
-1. Run `systemctl --user start wsh.service`. 
+2. Download the appropriate binary from the [releases](https://github.com/Draculente/web-command/releases/latest) page into that directory.
+3. Create a `.env` file in that directory and set the environment variables as described in `configuration`.
+4. IF YOU RUN IT AS HOST: Create a `sites.toml` file in that directory and set the sites as described in `configuration`.
+5. Copy the systemd service file into `/etc/systemd/user/wsh.service`.
+6. Adjust the service file to your needs.
+7. Run `systemctl --user daemon-reload`.
+8. Run `systemctl --user enable wsh.service`.
+9. Run `systemctl --user start wsh.service`. 
 
 
 #### Running in a docker container
