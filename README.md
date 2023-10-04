@@ -28,7 +28,7 @@ The first entry is the default. If no command is specified, the default command 
 
 Optionally a command can have an array of aliases. On load the aliases will be expanded to their own key. This is useful if you want to have multiple keys for the same site.
 
-A full example can be found [here](https://github.com/Draculente/web-command/blob/master/example.sites.toml).
+A full example can be found [here](./example.sites.toml).
 
 If you update the configuration file, you can reload it by sending a GET request to `http://wsh.example.com:$WEBCOMMAND_PORT/r/`.
 
@@ -40,7 +40,7 @@ The tool is a single executable. It is configured via environment variables.
 |---|---|---|
 | `WEBCOMMAND_PORT` | `8012` | The port the application is listening on. |
 | `WEBCOMMAND_HOST_MODE` | `false` | If the application runs in host mode or mirror mode. |
-| `WEBCOMMAND_CONFIG`  | `./sites.toml` | If the application runs in mirror mode (the default), this variable needs to contain an url, that points to a wsh instance running in host mode. If the application runs in host mode, this variable is interpreted as a path to a `toml` configuration file. If you don't want to maintain your own configuration file, you can use `https://wsh.draculente.me/` as the url. This is the configuration file of my instance. If you want to add a site, you can create a pull request here. |
+| `WEBCOMMAND_CONFIG`  | `./sites.toml` | If the application runs in mirror mode (the default), this variable needs to contain an url, that points to a wsh instance running in host mode. If the application runs in host mode, this variable is interpreted as a path to a `toml` configuration file. If you don't want to maintain your own configuration file, you can use `https://wsh.draculente.eu/` as the url. This is the configuration file of my instance. If you want to add a site, you can create a pull request here. |
 
 #### The host mode
 
@@ -85,7 +85,7 @@ The recommended way to run the service is to use systemd. You can find an exampl
 
 #### Running in a docker container
 
-If you want to, you could also run the service in a docker container put use systemd to manage it (even though I don't see any reason to do so). For further information see [here](https://www.jetbrains.com/help/youtrack/server/run-docker-container-as-service.html).
+If you want to, you could also run the service in a docker container but use systemd to manage it (even though I don't see any reason to do so). For further information see [here](https://www.jetbrains.com/help/youtrack/server/run-docker-container-as-service.html).
 
 ## Build
 
