@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use reqwest::{blocking::Client, Error};
 use std::{env, fs};
 
 use serde_derive::Deserialize;
@@ -52,7 +53,7 @@ impl Replaceable {
 impl Config {
     pub fn read_from_config(location: &str) -> anyhow::Result<Config> {
         let is_config_host = env::var("WEBCOMMAND_HOST_MODE") == Ok("true".to_owned());
-        let content = load_config(location, is_config_host);
+        let content = Config::load_config_str(location, is_config_host);
 
         let raw: RawConfig = toml::from_str(content?.as_str())?;
 
@@ -111,27 +112,45 @@ impl Config {
         );
         redirect_url
     }
-}
 
-fn load_config(location: &str, is_config_host: bool) -> anyhow::Result<String> {
-    println!(
-        "Executing as {}.",
+    fn load_config_str(location: &str, is_config_host: bool) -> anyhow::Result<String> {
+        println!(
+            "Executing as {}.",
+            if is_config_host {
+                "config host"
+            } else {
+                "config mirror"
+            }
+        );
+
         if is_config_host {
-            "config host"
+            fs::read_to_string(location).map_err(|_| anyhow!("please provide the config file"))
         } else {
-            "config mirror"
+            let config_host = env::var("WEBCOMMAND_CONFIG").map_err(|_| {
+                anyhow!("please provide the url to the config host in WEBCOMMAND_CONFIG.")
+            })?;
+            let config_host = get_config_url(&config_host);
+            let config = Config::get_request_client()?
+                .get(config_host)
+                .send()?
+                .text()?;
+            Ok(config)
         }
-    );
+    }
 
-    if is_config_host {
-        fs::read_to_string(location).map_err(|_| anyhow!("please provide the config file"))
-    } else {
-        let config_host = env::var("WEBCOMMAND_CONFIG").map_err(|_| {
-            anyhow!("please provide the url to the config host in WEBCOMMAND_CONFIG.")
-        })?;
-        let config_host = get_config_url(&config_host);
-        let config = reqwest::blocking::get(config_host)?.text()?;
-        Ok(config)
+    fn get_request_client() -> Result<Client, Error> {
+        reqwest::blocking::ClientBuilder::new()
+            .use_rustls_tls()
+            .build()
+    }
+
+    pub fn trigger_host_reload(&self) -> anyhow::Result<()> {
+        if !self.is_config_host {
+            Config::get_request_client()?
+                .get(get_reload_url(&self.location))
+                .send()?;
+        }
+        Ok(())
     }
 }
 

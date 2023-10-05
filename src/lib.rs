@@ -7,7 +7,7 @@ use std::{
 pub mod config;
 mod simple_server;
 use clap::crate_version;
-use config::{get_config_url, get_reload_url, Config};
+use config::{get_config_url, Config};
 use http_bytes::{
     http::{Method, Response, StatusCode},
     Request,
@@ -76,11 +76,7 @@ fn send_config_file(_: &Request, config: &Config) -> anyhow::Result<SResponse> {
 }
 
 fn reload_config_handler(_: &Request, config: &mut Config) -> anyhow::Result<SResponse> {
-    if !config.is_config_host {
-        if let Err(e) = reqwest::blocking::get(get_reload_url(&config.location)) {
-            eprintln!("Error while triggering reload on config host: {}", e);
-        }
-    }
+    config.trigger_host_reload()?;
 
     config.reload_config()?;
     let response_text = "Reloaded configuration".as_bytes();

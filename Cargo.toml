@@ -9,7 +9,7 @@ serde = "1.0.188"
 serde_derive = "1.0.188"
 urlencoding = "2.1.3"
 thhp = "0.2.0"
-reqwest = { version = "0.11.22", features = ["blocking"] }
+reqwest = { version = "0.11.22", features = ["blocking", "rustls-tls"] }
 http-bytes = "0.1.0"
 anyhow = "1.0.75"
 clap = { version = "4.4.6", features = ["cargo"] }
