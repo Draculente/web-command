@@ -2,6 +2,27 @@
 
 A tool to search the web with bang commands similar to DuckDuckGo. For example: `.d hello` will search for "hello" on DuckDuckGo.
 
+## Browser Setup
+
+The tool is designed to be used as a custom search engine.
+
+### Chromium
+
+1. Open the settings.
+2. Go to "Search engine".
+3. Click on "Manage search engines".
+4. Click on "Add".
+5. Enter a name (e.g. "Web Command").
+6. Enter a keyword (e.g. "w").
+7. Enter the url (e.g. `http://localhost:8012/%s`).
+8. Click on "Add".
+9. Click on the three dots next to the new entry.
+10. Click on "Make default".
+
+### Firefox
+
+Firefox does not support custom search engines by default. You can use the [Add custom search engine](https://addons.mozilla.org/en-US/firefox/addon/add-custom-search-engine/) extension to add a custom search engine.
+
 ## Configuration
 
 ### The Commands
