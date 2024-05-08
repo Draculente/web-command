@@ -44,9 +44,6 @@
                     type = types.str; default =
                     "/example/path/config.toml"; description = "path
                     for a configuration toml file";
-                  }; host = {
-                    type = types.str; default = "example.com"; description
-                    = "path for a configuration toml file";
                   };
                 };
               };
@@ -58,12 +55,13 @@
                     "network.target" ]; serviceConfig = { ExecStart =
                     "${packages.wsh}/bin/wsh"; #I want wsh to be the
                     package exported by flake.nix Environment = [
-                        "WEBCOMMAND_PORT=${toString
+                        ''WEBCOMMAND_PORT=${toString
                         config.services.wsh.port}" "WEBCOMMAND_CONFIG=${if
                         config.services.wsh.host_mode == "mirror" then
                           config.services.wsh.mirror.url else
                           config.services.wsh.configFile
-                        }" "WEBCOMMAND_HOST_MODE=${toString
+                        }''
+                        "WEBCOMMAND_HOST_MODE=${toString
                         (config.services.wsh.host_mode == "local" )}"
                       ];
                     };
