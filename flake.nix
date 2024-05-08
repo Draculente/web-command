@@ -65,7 +65,7 @@
                             else
                                 config.services.wsh.configFile
                         }''
-                        "WEBCOMMAND_HOST_MODE=${toString config.services.wsh.host_mode == "local"}"
+                        "WEBCOMMAND_HOST_MODE=${if config.services.wsh.host_mode == "local" then "true" else "false"}"
                       ];
                     };
                 };
