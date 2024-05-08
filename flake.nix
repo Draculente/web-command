@@ -1,29 +1,25 @@
 {
   inputs = {
     cargo2nix.url = "github:cargo2nix/cargo2nix/release-0.11.0";
-    flake-utils.follows = "cargo2nix/flake-utils";
-    nixpkgs.follows = "cargo2nix/nixpkgs";
+    flake-utils.follows = "cargo2nix/flake-utils"; nixpkgs.follows =
+    "cargo2nix/nixpkgs";
   };
 
   outputs = inputs: with inputs;
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
-          inherit system;
-          overlays = [cargo2nix.overlays.default];
+          inherit system; overlays = [cargo2nix.overlays.default];
         };
 
         rustPkgs = pkgs.rustBuilder.makePackageSet {
-          rustVersion = "1.75.0";
-          packageFun = import ./Cargo.nix;
+          rustVersion = "1.75.0"; packageFun = import ./Cargo.nix;
         };
 
       in rec {
         packages = {
-          wsh = (rustPkgs.workspace.wsh {});
-          default = packages.wsh;
-        };
-        nixosModules = {
+          wsh = (rustPkgs.workspace.wsh {}); default = packages.wsh;
+        }; nixosModules = {
           default = ({ config, lib, pkgs, ... }:
 
             with lib;
@@ -33,50 +29,42 @@
                 services.wsh = {
                   enable = mkEnableOption "Enable the WSH service";
                   port = mkOption {
-                    type = types.int;
-                    default = 8012;
-                    description = "Port for the WSH service";
-                  };
-                  host_mode = mkOption {
-                    type = types.str;
-                    default = "mirror";
-                    description = "Mode for the WSH service: 'mirror' or 'local'";
-                    options = [ "mirror" "local" ];
-                  };
-                  mirror = {
+                    type = types.int; default = 8012; description =
+                    "Port for the WSH service";
+                  }; host_mode = mkOption {
+                    type = types.str; default = "mirror"; description =
+                    "Mode for the WSH service: 'mirror' or 'local'";
+                  }; mirror = {
                     url = mkOption {
-                      type = types.str;
-                      default = "https://wsh.draculente.eu";
-                      description = "URL for the mirror";
+                      type = types.str; default =
+                      "https://wsh.draculente.eu"; description = "URL
+                      for the mirror";
                     };
-                  };
-                  configFile = {
-                    type = types.str;
-                    default = "/example/path/config.toml";
-                    description = "path for a configuration toml file";
-                  };
-                  host = {
-                    type = types.str;
-                    default = "example.com";
-                    description = "path for a configuration toml file";
+                  }; configFile = {
+                    type = types.str; default =
+                    "/example/path/config.toml"; description = "path
+                    for a configuration toml file";
+                  }; host = {
+                    type = types.str; default = "example.com"; description
+                    = "path for a configuration toml file";
                   };
                 };
               };
 
               config = mkIf config.services.wsh.enable {
                 systemd.services.wsh = {
-                    description = "WSH Service";
-                    wantedBy = [ "multi-user.target" ];
-                    after = [ "network.target" ];
-                    serviceConfig = {
-                    ExecStart = "${packages.wsh}/bin/wsh"; #I want wsh to be the package exported by flake.nix
-                    Environment = [
-                        "WEBCOMMAND_PORT=${toString config.services.wsh.port}"
-                        "WEBCOMMAND_CONFIG=${if config.services.wsh.host_mode == "mirror" then
+                    description = "WSH Service"; wantedBy
+                    = [ "multi-user.target" ]; after = [
+                    "network.target" ]; serviceConfig = { ExecStart =
+                    "${packages.wsh}/bin/wsh"; #I want wsh to be the
+                    package exported by flake.nix Environment = [
+                        "WEBCOMMAND_PORT=${toString
+                        config.services.wsh.port}" "WEBCOMMAND_CONFIG=${if
+                        config.services.wsh.host_mode == "mirror" then
                           config.services.wsh.mirror.url else
                           config.services.wsh.configFile
-                        }"
-                        "WEBCOMMAND_HOST_MODE=${toString (config.services.wsh.host_mode == "local" )}"
+                        }" "WEBCOMMAND_HOST_MODE=${toString
+                        (config.services.wsh.host_mode == "local" )}"
                       ];
                     };
                 };
