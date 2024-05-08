@@ -32,7 +32,7 @@
                     type = types.int; default = 8012; description =
                     "Port for the WSH service";
                   }; host_mode = mkOption {
-                    type = types.str; default = "mirror"; description =
+                    type = types.string; default = "mirror"; description =
                     "Mode for the WSH service: 'mirror' or 'local'";
                   }; mirror = {
                     url = mkOption {
@@ -41,7 +41,7 @@
                       description = "URL for the mirror";
                     };
                   }; configFile = mkOption {
-                    type = types.string;
+                    type = types.path;
                     default = "/example/path/config.toml";
                     description = "path for a configuration toml file";
                   };
