@@ -63,9 +63,9 @@
                             then
                                 config.services.wsh.mirror.url
                             else
-                                config.services.wsh.configFile
+                                config.services.wsh.configFile.path
                         }''
-                        "WEBCOMMAND_HOST_MODE=${toString ( config.services.wsh.host_mode == "local" )}"
+                        "WEBCOMMAND_HOST_MODE=${toString config.services.wsh.host_mode == "local"}"
                       ];
                     };
                 };
