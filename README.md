@@ -85,7 +85,7 @@ If you have a remote machine you can run the service on it and set the host mode
 ```nix
 inputs = {
     wsh = {
-      url = "github:lomenzel/web-command";
+      url = "github:draculente/web-command";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
