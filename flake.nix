@@ -54,8 +54,7 @@
                     wantedBy= [ "multi-user.target" ];
                     after = [ "network.target" ];
                     serviceConfig = {
-                    #ExecStart = "${packages.wsh}/bin/wsh";
-                    ExecStart = "echo $WEBCOMMAND_HOST_MODE";
+                    ExecStart = "${packages.wsh}/bin/wsh";
                     Environment = [
                         "WEBCOMMAND_PORT=${toString config.services.wsh.port}"
                         ''WEBCOMMAND_CONFIG=${
@@ -66,7 +65,7 @@
                             else
                                 config.services.wsh.configFile
                         }''
-                        "WEBCOMMAND_HOST_MODE=${toString(config.services.wsh.host_mode == "local" )}"
+                        "WEBCOMMAND_HOST_MODE=${toString ( config.services.wsh.host_mode == "local" )}"
                       ];
                     };
                 };
