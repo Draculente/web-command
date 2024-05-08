@@ -40,7 +40,7 @@
                       default = "https://wsh.draculente.eu";
                       description = "URL for the mirror";
                     };
-                  }; configFile = {
+                  }; configFile = mkOption {
                     type = types.str;
                     default = "/example/path/config.toml";
                     description = "path for a configuration toml file";
