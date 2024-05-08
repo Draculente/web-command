@@ -50,11 +50,12 @@
 
               config = mkIf config.services.wsh.enable {
                 systemd.services.wsh = {
-                    description = "WSH Service"; wantedBy
-                    = [ "multi-user.target" ]; after = [
-                    "network.target" ]; serviceConfig = { ExecStart =
-                    "${packages.wsh}/bin/wsh"; #I want wsh to be the
-                    package exported by flake.nix Environment = [
+                    description = "WSH Service";
+                    wantedBy= [ "multi-user.target" ];
+                    after = [ "network.target" ];
+                    serviceConfig = {
+                    ExecStart = "${packages.wsh}/bin/wsh";
+                    Environment = [
                         ''WEBCOMMAND_PORT=${toString
                         config.services.wsh.port}" "WEBCOMMAND_CONFIG=${if
                         config.services.wsh.host_mode == "mirror" then
