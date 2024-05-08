@@ -36,12 +36,12 @@
                     "Mode for the WSH service: 'mirror' or 'local'";
                   }; mirror = {
                     url = mkOption {
-                      type = types.str;
+                      type = types.string;
                       default = "https://wsh.draculente.eu";
                       description = "URL for the mirror";
                     };
                   }; configFile = mkOption {
-                    type = types.str;
+                    type = types.string;
                     default = "/example/path/config.toml";
                     description = "path for a configuration toml file";
                   };
