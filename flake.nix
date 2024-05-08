@@ -37,19 +37,30 @@
                     default = 8012;
                     description = "Port for the WSH service";
                   };
+                  host_mode = mkOption {
+                    type = types.str;
+                    default = "mirror";
+                    description = "Mode for the WSH service: 'mirror' or 'local'";
+                    options = [ "mirror" "local" ];
+                  };
                   mirror = {
-                    enable = mkOption {
-                      type = types.bool;
-                      default = true;
-                      description = "Whether to enable mirror mode or use a local configuration";
-                    };
                     url = mkOption {
                       type = types.str;
                       default = "https://wsh.draculente.eu";
                       description = "URL for the mirror";
                     };
-                    configureNginx = mkEnableOption "Configure Nginx for the mirror";
                   };
+                  configFile = {
+                    type = types.str;
+                    default = "/example/path/config.toml";
+                    description = "path for a configuration toml file";
+                  };
+                  host = {
+                    type = types.str;
+                    default = "example.com";
+                    description = "path for a configuration toml file";
+                  };
+                  configureNginx = mkEnableOption "Configure Nginx for the mirror";
                 };
               };
 
@@ -57,22 +68,31 @@
                 systemd.services.wsh = {
                     description = "WSH Service";
                     wantedBy = [ "multi-user.target" ];
+                    after = [ "network.target" ];
                     serviceConfig = {
                     ExecStart = "${packages.wsh}/bin/wsh"; #I want wsh to be the package exported by flake.nix
                     Environment = [
                         "WEBCOMMAND_PORT=${toString config.services.wsh.port}"
-                        "WEBCOMMAND_CONFIG=${config.services.wsh.mirror.url}"
-                        "WEBCOMMAND_HOST_MODE=${toString config.services.wsh.mirror.enable}"
-                    ];
+                        "WEBCOMMAND_CONFIG=${if config.services.wsh.host_mode == "mirror" then
+                          config.services.wsh.mirror.url else
+                          config.services.wsh.configFile
+                        }"
+                        "WEBCOMMAND_HOST_MODE=${toString (config.services.wsh.host_mode == "local" )}"
+                      ];
                     };
-                    after = [ "network.target" ];
                 };
+              };
+              config = mkIf (config.services.wsh.enable && config.services.wsh.configureNginx) {
+                services.nginx.virtualHosts."media.menzel.lol" = {
+                  forceSSL = true;
+                  useACME = true;
+                  locations."/" = { proxyPass = "http://localhost:${toString config.services.wsh.port}"; };
+                };
+
               };
             }
           );
         };
       }
-
-
     );
 }
