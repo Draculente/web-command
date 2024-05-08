@@ -60,7 +60,6 @@
                     default = "example.com";
                     description = "path for a configuration toml file";
                   };
-                  configureNginx = mkEnableOption "Configure Nginx for the mirror";
                 };
               };
 
@@ -82,14 +81,7 @@
                     };
                 };
               };
-              config = mkIf (config.services.wsh.enable && config.services.wsh.configureNginx) {
-                services.nginx.virtualHosts."media.menzel.lol" = {
-                  forceSSL = true;
-                  useACME = true;
-                  locations."/" = { proxyPass = "http://localhost:${toString config.services.wsh.port}"; };
-                };
 
-              };
             }
           );
         };
