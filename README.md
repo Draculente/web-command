@@ -72,6 +72,68 @@ If you have a remote machine you can run the service on it and set the host mode
 
 ## Installation
 
+### NixOs
+
+#### Running the programm
+
+1. Set the environment variables with `export WEBCOMMAND_CONFIG="URL/Path"` etc...
+2. run the programm with `nix run github:draculente/web-command`
+
+#### As a service
+
+1. import the git repo into your flake.
+```nix
+inputs = {
+    wsh = {
+      url = "github:lomenzel/web-command";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+```
+2. import the module `wsh.nixosModules.<your system>.default` your system is for example `x86_64-linux`
+3. Configure it as you like
+
+example 1:
+
+configFile can also be a Path to your config file :)
+```nix
+services.wsh = {
+    enable = true;
+    host_mode = "local";
+    configFile = pkgs.writeText "wsh-config.toml" ''
+      prefix = "."
+
+      [[sites]]
+      name = "duden"
+      key = "d"
+      url = "http://www.duden.de/suchen/dudenonline/{{s}}"
+      [[sites]]
+      name = "startpage"
+      key = "s"
+      alias = [ "startpage" ]
+      url = "https://www.startpage.com/sp/search?query={{s}}"
+      [[sites]]
+      name = "nixpkgs"
+      key = "nix"
+      url = "https://search.nixos.org/packages?channel=unstable&from=0&size=50&sort=relevance&type=packages&query={{s}}"
+      [[sites]]
+      name = "wikipedia"
+      key = "w"
+      alias = [ "wiki" ]
+      url = "https://de.wikipedia.org/wiki/Special:Search?search={{s}}"
+    '';
+  };
+```
+example 2:
+```nix
+services.wsh = {
+    enable = true;
+    host_mode = "mirror";
+    mirror.url = "https://wsh.draculente.eu";
+}
+```
+
+
 ### Docker
 
 The easiest way to run the service is to use docker-compose. You can find an example docker-compose file [here](./docker-compose.yml).  
