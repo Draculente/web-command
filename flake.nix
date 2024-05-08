@@ -20,10 +20,14 @@
 
       in rec {
         packages = {
-          # replace hello-world with your package name
           wsh = (rustPkgs.workspace.wsh {});
           default = packages.wsh;
         };
+        nixosModules = {
+          default = import ./module.nix;
+        };
       }
+
+
     );
 }
