@@ -56,14 +56,16 @@
                     serviceConfig = {
                     ExecStart = "${packages.wsh}/bin/wsh";
                     Environment = [
-                        ''WEBCOMMAND_PORT=${toString
-                        config.services.wsh.port}" "WEBCOMMAND_CONFIG=${if
-                        config.services.wsh.host_mode == "mirror" then
-                          config.services.wsh.mirror.url else
-                          config.services.wsh.configFile
+                        "WEBCOMMAND_PORT=${toString config.services.wsh.port}"
+                        ''WEBCOMMAND_CONFIG=${
+                            if
+                                config.services.wsh.host_mode == "mirror"
+                            then
+                                config.services.wsh.mirror.url
+                            else
+                                config.services.wsh.configFile
                         }''
-                        "WEBCOMMAND_HOST_MODE=${toString
-                        (config.services.wsh.host_mode == "local" )}"
+                        "WEBCOMMAND_HOST_MODE=${toString(config.services.wsh.host_mode == "local" )}"
                       ];
                     };
                 };
