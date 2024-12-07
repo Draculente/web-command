@@ -1,3 +1,4 @@
+#![feature(let_chains)]
 use std::{
     env, fs,
     net::TcpListener,
@@ -5,13 +6,12 @@ use std::{
 };
 
 pub mod config;
+mod http;
 mod simple_server;
 use clap::crate_version;
 use config::{get_config_url, Config};
-use http_bytes::{
-    http::{Method, Response, StatusCode},
-    Request,
-};
+use http::{HttpMethod, HttpRequest};
+use http_bytes::http::{Response, StatusCode};
 use simple_server::{RequestHandlerFunc, SResponse, SimpleServer};
 use urlencoding::decode;
 
@@ -25,17 +25,17 @@ pub fn run(config: Arc<RwLock<Config>>) -> Result<()> {
 
     let mut server = SimpleServer::new(listener, config);
     server.add_handler(
-        Method::GET,
+        HttpMethod::Get,
         "/u/",
         RequestHandlerFunc::ReadFunc(send_config_file),
     );
     server.add_handler(
-        Method::GET,
+        HttpMethod::Get,
         "/r/",
         RequestHandlerFunc::WriteFunc(reload_config_handler),
     );
     server.add_handler(
-        Method::GET,
+        HttpMethod::Get,
         "/i/",
         RequestHandlerFunc::ReadFunc(|_, _| {
             let info = format!("WSH v{}\nMade with love in the European Union\nhttps://github.com/Draculente/web-command\n", crate_version!());
@@ -47,7 +47,7 @@ pub fn run(config: Arc<RwLock<Config>>) -> Result<()> {
         }),
     );
     server.add_handler(
-        Method::GET,
+        HttpMethod::Get,
         "/",
         RequestHandlerFunc::ReadFunc(redirect_handler),
     );
@@ -56,7 +56,7 @@ pub fn run(config: Arc<RwLock<Config>>) -> Result<()> {
     Ok(())
 }
 
-fn send_config_file(_: &Request, config: &Config) -> anyhow::Result<SResponse> {
+fn send_config_file(_: &HttpRequest, config: &Config) -> anyhow::Result<SResponse> {
     if config.is_config_host {
         let response = fs::read_to_string(config.location.as_str())?;
         let res_bytes = response.as_bytes();
@@ -75,7 +75,7 @@ fn send_config_file(_: &Request, config: &Config) -> anyhow::Result<SResponse> {
     }
 }
 
-fn reload_config_handler(_: &Request, config: &mut Config) -> anyhow::Result<SResponse> {
+fn reload_config_handler(_: &HttpRequest, config: &mut Config) -> anyhow::Result<SResponse> {
     config.trigger_host_reload()?;
 
     config.reload_config()?;
@@ -88,13 +88,8 @@ fn reload_config_handler(_: &Request, config: &mut Config) -> anyhow::Result<SRe
     Ok(response)
 }
 
-fn redirect_handler(req: &Request, config: &Config) -> anyhow::Result<SResponse> {
-    let raw_search_string = req
-        .uri()
-        .to_string()
-        .strip_prefix("/")
-        .map(|s| s.replace("+", " "))
-        .unwrap_or("".to_owned());
+fn redirect_handler(req: &HttpRequest, config: &Config) -> anyhow::Result<SResponse> {
+    let raw_search_string = req.uri_without_starting_slash();
 
     let search_string = decode(&raw_search_string)?;
 

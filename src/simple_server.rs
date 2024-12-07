@@ -1,6 +1,6 @@
 use std::{
     error::Error,
-    io::{BufWriter, Read, Write},
+    io::{BufWriter, Write},
     net::{TcpListener, TcpStream},
     sync::{Arc, RwLock},
     thread,
@@ -8,25 +8,31 @@ use std::{
 };
 
 use anyhow::anyhow;
-use http_bytes::{
-    http::{Method, Response},
-    parse_request_header_easy, write_response_header, Request,
-};
+use http_bytes::{http::Response, write_response_header};
 
-use crate::config::Config;
+use crate::{
+    config::Config,
+    http::{HttpMethod, HttpRequest},
+};
 
 pub type SResponse = anyhow::Result<Response<Vec<u8>>, http_bytes::http::Error>;
 
 #[derive(Copy, Clone)]
 pub enum RequestHandlerFunc {
-    ReadFunc(fn(&Request, &Config) -> anyhow::Result<SResponse>),
-    WriteFunc(fn(&Request, &mut Config) -> anyhow::Result<SResponse>),
+    ReadFunc(fn(&HttpRequest, &Config) -> anyhow::Result<SResponse>),
+    WriteFunc(fn(&HttpRequest, &mut Config) -> anyhow::Result<SResponse>),
 }
 
 struct RequestHandler {
-    method: Method,
+    method: HttpMethod,
     path: String,
     f: RequestHandlerFunc,
+}
+
+impl RequestHandler {
+    fn matches_on(&self, request: &HttpRequest) -> bool {
+        self.method == request.get_method() && request.get_uri().to_string().starts_with(&self.path)
+    }
 }
 
 pub struct SimpleServer {
@@ -44,7 +50,7 @@ impl SimpleServer {
         }
     }
 
-    pub fn add_handler(&mut self, method: Method, path: &str, f: RequestHandlerFunc) {
+    pub fn add_handler(&mut self, method: HttpMethod, path: &str, f: RequestHandlerFunc) {
         self.handlers.push(RequestHandler {
             method,
             path: path.to_string(),
@@ -53,6 +59,11 @@ impl SimpleServer {
     }
 
     pub fn run(&self) -> std::result::Result<(), Box<dyn Error>> {
+        let addr = self
+            .listener
+            .local_addr()
+            .expect("Listener must have an addr");
+        println!("Server listening on {}:{}", addr.ip(), addr.port());
         for stream in self.listener.incoming() {
             let mut s = stream?;
             if let Err(e) = self.handle_client(&mut s) {
@@ -63,51 +74,39 @@ impl SimpleServer {
     }
 
     fn handle_client(&self, stream: &mut TcpStream) -> anyhow::Result<()> {
-        let mut buf = vec![0u8; 1024 * 2];
-
         stream.set_read_timeout(Some(Duration::from_millis(1000)))?;
 
         stream.set_write_timeout(Some(Duration::from_millis(1000)))?;
 
-        stream.read(&mut buf)?;
+        let req = HttpRequest::from_stream(stream).map_err(|e| anyhow!(e))?;
 
-        // TODO: If the buffer has not enough data yet, we should read again.
-        // In this case the parse_request method returns a Ok(None).
-        let request = parse_request_header_easy(&buf)?;
+        if let Some(handler) = self.handlers.iter().find(|h| h.matches_on(&req)) {
+            // TODO: This is too much cloning!
+            let h = handler.f.clone();
 
-        if let Some((req, _)) = request {
-            if let Some(handler) = self
-                .handlers
-                .iter()
-                .find(|h| h.method == req.method() && req.uri().to_string().starts_with(&h.path))
-            {
-                // TODO: This is too much cloning!
-                let h = handler.f.clone();
-                let c = Arc::clone(&self.config);
-                let mut s = stream.try_clone()?;
+            let c = Arc::clone(&self.config);
+            let mut s = stream.try_clone()?;
 
-                thread::spawn(move || {
-                    if let Err(e) = send_response(&mut s, h, &req, c) {
-                        if let Err(err) = Response::builder()
-                            .status(500)
-                            .body(e.to_string().into_bytes())
-                            .map(|r| write_response_header(&r, s))
-                        {
-                            println!("Err {}", err);
-                        }
+            thread::spawn(move || {
+                if let Err(e) = send_response(&mut s, h, &req, c) {
+                    eprintln!("Error sending response: {}", e);
+                    if let Err(err) = Response::builder()
+                        .status(500)
+                        .body(e.to_string().into_bytes())
+                        .map(|r| write_response_header(&r, s))
+                    {
+                        eprintln!("Err {}", err);
                     }
-                });
-                return Ok(());
-            } else {
-                return Err(anyhow!(
-                    "Not found for method {} on {}",
-                    req.method(),
-                    req.uri().to_string()
-                ));
-            }
+                }
+            });
+            return Ok(());
+        } else {
+            return Err(anyhow!(
+                "Not found for method {} on {}",
+                req.get_method(),
+                req.get_uri().to_string()
+            ));
         }
-
-        Err(anyhow!("Error while parsing request"))
     }
 }
 
@@ -121,17 +120,17 @@ fn send_error(stream: &mut TcpStream, err: &anyhow::Error) {
         .body(&message)
         .unwrap();
     if let Err(e) = write_response_header(&response, writer) {
-        println!("Err {}", e);
+        eprintln!("Err {}", e);
     }
     if let Err(e) = stream.write_all(&response.body()) {
-        println!("Err {}", e);
+        eprintln!("Err {}", e);
     }
 }
 
 fn send_response(
     stream: &mut TcpStream,
     handler: RequestHandlerFunc,
-    req: &Request,
+    req: &HttpRequest,
     config: Arc<RwLock<Config>>,
 ) -> anyhow::Result<()> {
     let writer = BufWriter::new(&*stream);
@@ -152,6 +151,7 @@ fn send_response(
     if let Ok(response) = handler_res? {
         write_response_header(&response, writer)?;
         stream.write_all(response.body())?;
+        stream.flush()?;
     } else {
         return Err(anyhow!("Error while handling request"));
     }
