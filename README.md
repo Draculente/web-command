@@ -86,16 +86,14 @@ If you have a remote machine you can run the service on it and set the host mode
 inputs = {
     wsh = {
       url = "github:draculente/web-command";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 ```
-2. import the module `wsh.nixosModules.<your system>.default` your system is for example `x86_64-linux`
+2. import the module `wsh.homeManagerModule` to your home Configuration
 3. Configure it as you like
 
 example 1:
 
-configFile can also be a Path to your config file :)
 ```nix
 services.wsh = {
     enable = true;
@@ -132,6 +130,8 @@ services.wsh = {
     mirror.url = "https://wsh.draculente.eu";
 }
 ```
+
+depending on your setup, you might need to add the overlay or set `services.wsh.package` manually
 
 
 ### Docker
